@@ -1,0 +1,43 @@
+version: 2
+jobs:
+  test:
+    working_directory: /go/src/github.com/nashiox/packer-post-processor-openstack-image-management
+    docker:
+      - image: golang:1.9
+    steps:
+      - checkout
+      - run:
+          name: "Install Build Dependencies"
+          command: |
+              make builddep
+      - run:
+          name: "Run Test"
+          command: make test
+
+  deploy:
+    working_directory: /go/src/github.com/nashiox/packer-post-processor-openstack-image-management
+    docker:
+      - image: golang:1.9
+    steps:
+      - checkout
+      - run:
+          name: "Install Build Dependencies"
+          command: make builddep
+      - run:
+          name: "Cross Compile"
+          command: make cross
+      - run:
+          name: "Deploy"
+          command: make deploy
+
+workflows:
+  version: 2
+  test_and_deploy:
+    jobs:
+      - test
+      - deploy:
+          requires:
+            - test
+          filters:
+            branches:
+              only: master
