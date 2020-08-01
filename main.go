@@ -29,6 +29,8 @@ func main() {
 		panic(err)
 	}
 
-	server.RegisterPostProcessor(new(openstackimagemanagement.OpenStackPostProcessor))
+	if err := server.RegisterPostProcessor(new(openstackimagemanagement.OpenStackPostProcessor)); err != nil {
+		panic(err)
+	}
 	server.Serve()
 }

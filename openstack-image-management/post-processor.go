@@ -24,8 +24,6 @@ import (
 	"github.com/hashicorp/packer/template/interpolate"
 )
 
-const BuilderId = "packer.post-processor.openstack-image-management"
-
 type Config struct {
 	common.PackerConfig    `mapstructure:",squash"`
 	openstack.AccessConfig `mapstructure:",squash"`
@@ -72,7 +70,7 @@ func (p *OpenStackPostProcessor) PostProcess(ctx context.Context, ui packer.Ui, 
 		conn, err := p.imageV2Client()
 		if err != nil {
 			log.Println(err)
-			return nil, false, false, err
+			return nil, true, false, err
 		}
 		p.conn = conn
 	}
@@ -81,7 +79,7 @@ func (p *OpenStackPostProcessor) PostProcess(ctx context.Context, ui packer.Ui, 
 
 	log.Println("Describing images for generation management")
 	pager := images.List(p.conn, images.ListOpts{Name: p.config.Identifier})
-	pager.EachPage(func(page pagination.Page) (bool, error) {
+	if err := pager.EachPage(func(page pagination.Page) (bool, error) {
 		imgs, err := images.ExtractImages(page)
 		if err != nil {
 			return false, err
@@ -89,7 +87,9 @@ func (p *OpenStackPostProcessor) PostProcess(ctx context.Context, ui packer.Ui, 
 
 		imageList = append(imageList, imgs...)
 		return true, nil
-	})
+	}); err != nil {
+		return nil, true, false, err
+	}
 
 	sort.Slice(imageList, func(i, j int) bool {
 		return imageList[i].CreatedAt.After(imageList[j].CreatedAt)
@@ -103,11 +103,11 @@ func (p *OpenStackPostProcessor) PostProcess(ctx context.Context, ui packer.Ui, 
 		ui.Message(fmt.Sprintf("Deleting image: %s", img.ID))
 		log.Printf("Deteting image (%s)", img.ID)
 		if result := images.Delete(p.conn, img.ID); result.Err != nil {
-			return nil, false, false, result.Err
+			return nil, true, false, result.Err
 		}
 	}
 
-	return artifact, false, false, nil
+	return artifact, true, false, nil
 }
 
 func (p *OpenStackPostProcessor) imageV2Client() (*gophercloud.ServiceClient, error) {

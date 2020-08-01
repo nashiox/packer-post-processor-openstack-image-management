@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/packer/packer"
 )
 
-func testUi() *packer.BasicUi {
+func testUI() *packer.BasicUi {
 	return &packer.BasicUi{
 		Reader: new(bytes.Buffer),
 		Writer: new(bytes.Buffer),
@@ -176,7 +176,7 @@ func TestPostProcessorEmptyImages(t *testing.T) {
 	p.config.Identifier = "packer-example"
 	p.config.KeepReleases = 3
 	artifact := &packer.MockArtifact{}
-	_, keep, forceOverride, err := p.PostProcess(context.Background(), testUi(), artifact)
+	_, keep, forceOverride, err := p.PostProcess(context.Background(), testUI(), artifact)
 
 	if !keep {
 		t.Fatal("should keep")
@@ -201,7 +201,7 @@ func TestPostProcessorFewImages(t *testing.T) {
 	p.config.Identifier = "packer-example"
 	p.config.KeepReleases = 3
 	artifact := &packer.MockArtifact{}
-	_, keep, forceOverride, err := p.PostProcess(context.Background(), testUi(), artifact)
+	_, keep, forceOverride, err := p.PostProcess(context.Background(), testUI(), artifact)
 
 	if !keep {
 		t.Fatal("should keep")
@@ -226,7 +226,7 @@ func TestPostProcessorManyImages(t *testing.T) {
 	p.config.Identifier = "packer-example"
 	p.config.KeepReleases = 2
 	artifact := &packer.MockArtifact{}
-	_, keep, forceOverride, err := p.PostProcess(context.Background(), testUi(), artifact)
+	_, keep, forceOverride, err := p.PostProcess(context.Background(), testUI(), artifact)
 
 	if !keep {
 		t.Fatal("should keep")
@@ -292,7 +292,7 @@ func ImageListHandler(t *testing.T, images []imageEntry) {
 			}
 		}
 		t.Logf("Writing out %v image(s)", len(imageJSON))
-		fmt.Fprintf(w, strings.Join(imageJSON, ","))
+		fmt.Fprintln(w, strings.Join(imageJSON, ","))
 
 		fmt.Fprintf(w, `],
 			    "next": "/images?marker=%s&limit=%v",
