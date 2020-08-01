@@ -2,6 +2,7 @@ package openstackimagemanagement
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -175,10 +176,14 @@ func TestPostProcessorEmptyImages(t *testing.T) {
 	p.config.Identifier = "packer-example"
 	p.config.KeepReleases = 3
 	artifact := &packer.MockArtifact{}
-	_, keep, err := p.PostProcess(testUi(), artifact)
+	_, keep, forceOverride, err := p.PostProcess(context.Background(), testUi(), artifact)
 
 	if !keep {
 		t.Fatal("should keep")
+	}
+
+	if forceOverride {
+		t.Fatal("Should default to keep, but not override user wishes")
 	}
 
 	if err != nil {
@@ -196,10 +201,14 @@ func TestPostProcessorFewImages(t *testing.T) {
 	p.config.Identifier = "packer-example"
 	p.config.KeepReleases = 3
 	artifact := &packer.MockArtifact{}
-	_, keep, err := p.PostProcess(testUi(), artifact)
+	_, keep, forceOverride, err := p.PostProcess(context.Background(), testUi(), artifact)
 
 	if !keep {
 		t.Fatal("should keep")
+	}
+
+	if forceOverride {
+		t.Fatal("Should default to keep, but not override user wishes")
 	}
 
 	if err != nil {
@@ -217,9 +226,14 @@ func TestPostProcessorManyImages(t *testing.T) {
 	p.config.Identifier = "packer-example"
 	p.config.KeepReleases = 2
 	artifact := &packer.MockArtifact{}
-	_, keep, err := p.PostProcess(testUi(), artifact)
+	_, keep, forceOverride, err := p.PostProcess(context.Background(), testUi(), artifact)
+
 	if !keep {
 		t.Fatal("should keep")
+	}
+
+	if forceOverride {
+		t.Fatal("Should default to keep, but not override user wishes")
 	}
 
 	if err != nil {

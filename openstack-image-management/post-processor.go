@@ -1,6 +1,9 @@
+//go:generate mapstructure-to-hcl2 -type Config
+
 package openstackimagemanagement
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -13,12 +16,15 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/imageservice/v2/images"
 	"github.com/gophercloud/gophercloud/pagination"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/packer/builder/openstack"
 	"github.com/hashicorp/packer/common"
 	"github.com/hashicorp/packer/helper/config"
 	"github.com/hashicorp/packer/packer"
 	"github.com/hashicorp/packer/template/interpolate"
 )
+
+const BuilderId = "packer.post-processor.openstack-image-management"
 
 type Config struct {
 	common.PackerConfig    `mapstructure:",squash"`
@@ -29,9 +35,14 @@ type Config struct {
 
 	ctx interpolate.Context
 }
+
 type OpenStackPostProcessor struct {
 	config Config
 	conn   *gophercloud.ServiceClient
+}
+
+func (p *OpenStackPostProcessor) ConfigSpec() hcldec.ObjectSpec {
+	return p.config.FlatMapstructure().HCL2Spec()
 }
 
 func (p *OpenStackPostProcessor) Configure(raws ...interface{}) error {
@@ -49,11 +60,11 @@ func (p *OpenStackPostProcessor) Configure(raws ...interface{}) error {
 		return errs
 	}
 
-	log.Println(common.ScrubConfig(p.config))
+	log.Println(p.config)
 	return nil
 }
 
-func (p *OpenStackPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artifact) (packer.Artifact, bool, error) {
+func (p *OpenStackPostProcessor) PostProcess(ctx context.Context, ui packer.Ui, artifact packer.Artifact) (packer.Artifact, bool, bool, error) {
 	log.Println("Running OpenStack Image Management Post-Processor")
 
 	if p.conn == nil {
@@ -61,7 +72,7 @@ func (p *OpenStackPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 		conn, err := p.imageV2Client()
 		if err != nil {
 			log.Println(err)
-			return nil, true, err
+			return nil, false, false, err
 		}
 		p.conn = conn
 	}
@@ -92,11 +103,11 @@ func (p *OpenStackPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 		ui.Message(fmt.Sprintf("Deleting image: %s", img.ID))
 		log.Printf("Deteting image (%s)", img.ID)
 		if result := images.Delete(p.conn, img.ID); result.Err != nil {
-			return nil, true, result.Err
+			return nil, false, false, result.Err
 		}
 	}
 
-	return artifact, true, nil
+	return artifact, false, false, nil
 }
 
 func (p *OpenStackPostProcessor) imageV2Client() (*gophercloud.ServiceClient, error) {
