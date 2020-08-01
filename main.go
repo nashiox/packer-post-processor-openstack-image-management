@@ -20,7 +20,7 @@ func main() {
 	flag.Parse()
 
 	if version {
-		fmt.Printf("Version: %s, Revision: %s", Version, Revision)
+		fmt.Printf("Version: %s, Revision: %s\n", Version, Revision)
 		os.Exit(0)
 	}
 
